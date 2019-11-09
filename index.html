@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head leftmargin="40">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-responsive.css">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script language="javascript" src="js/jquery-1.8.3.js"></script>
+    <script language="javascript" src="js/bootstrap.js"></script>
+    <title>中文錄音網站 (Download)</title>     
+    <br>
+    <div class="container" style="font-weight:bold;"><p class="text-info"><font size="5"><td align="center">   中文錄音網站</td></font></p></div>
+</head>
+<body  leftmargin="40">
+	<div class="container">
+		<div class="container"><p class="text-info">
+		0. 名字</p></div>
+		<textarea rows="4" cols="40" id="name_id">Han</textarea><input class="btn btn-primary" onclick="setName()" type="button" value="submit" />
+		</div>
+	</div>
+	<div class="container">
+		<div class="container"><p class="text-info">
+		1. 開始題號</p></div>
+		<textarea rows="4" cols="40" id="question_id">0</textarea><input class="btn btn-primary" onclick="setQID()" type="button" value="submit" />
+		</div>
+	</div>
+    <div class="container">        
+    	<div class="container"><p class="text-info">2.按下Record開始錄音，結束錄音請按Stop(錄音前請先按下瀏覽器上方的允許使用麥克風): </p></div>
+        <input id="startRecordingBT" class="btn btn-primary" onclick="startRecording()" type="button" value="Record" />
+        <input id="stopRecordingBT" class="btn btn-primary" onclick="stopRecording()" type="button" value="Stop" />
+    </div> 
+        <br>  <br>
+    <div class="container"> 
+    	<div class="container"><p class="text-info">3.下方欄位可以決定要發音訓練的詞或句子: </p></div>
+		<input type="text" id="t1" value="阿" style="font-size:11em;height:150px; width: 200px;" readonly>
+		<input type="text" id="t2" value="ㄚ" style="font-size:4em;height:150px; width: 200px;" readonly>
+		<input class="btn btn-primary" onclick="setPrev()" type="button" value="prev" />
+		<input class="btn btn-primary" onclick="setNext()" type="button" value="next" />
+    </div>
+    <p></p>
+    
+    
+    
+    <div></div>
+    <p></p><br>
+    <div class="container"> <!--style="font-size:20pt"-->
+      <div class="container"><p class="text-info">4.系統狀態: </p></div>      
+      <pre id="reg">
+      </pre>
+	  <ol id="recordingsList"></ol>
+    </div>
+
+    <script type="text/javascript" src="js/HZRecorder.js"></script>
+	<script type="text/javascript" src="js/jquery-1.8.0.min.js"></script>
+
+    <script>
+
+        var recorder;
+	var audio_context;
+	var nameID = "Han";
+	var q_idx = 0;
+		
+        var questions = [];	
+        var zhuyins = [];
+        var real_idx = [];	
+		
+	var start_time;
+        var audio = document.querySelector('audio');
+        var domain_name = "https://smildemo.csie.ntnu.edu.tw/CAPT-Mandarin/MD_v5";
+	var question_fn = "questions.csv"
+		
+	function setName() {
+		nameID = document.getElementById("name_id").value;
+		$('#reg').text("The new name you set is " + nameID);
+        }
+		
+	function setQID(){
+		var recordingsList = document.getElementById("recordingsList");
+		recordingsList.innerHTML = "";
+		var elem = document.getElementById("t1");
+		var elem2 = document.getElementById("t2");
+		q_idx = Number(document.getElementById("question_id").value);
+		if(q_idx < 0){
+			q_idx = 0;
+		}else if(q_idx >= questions.length){
+			q_idx = questions.length-1;
+		}
+		document.getElementById("question_id").value = q_idx;
+		elem.value = questions[real_idx[q_idx]];
+		elem2.value = zhuyins[real_idx[q_idx]];
+		$('#reg').text("The question ID is " + q_idx + "(" + real_idx[q_idx] + ")");
+	}
+		
+        function startRecording() {
+			var start_bt = document.getElementById("startRecordingBT");
+			var stop_bt = document.getElementById("stopRecordingBT");
+			start_bt.style.display = "none";
+			stop_bt.style.display = "block";
+			recorder.start();
+			$('#reg').text("Recording...");
+        }
+
+        function stopRecording() {
+			var start_bt = document.getElementById("startRecordingBT");
+			var stop_bt = document.getElementById("stopRecordingBT");
+			start_bt.style.display = "block";
+			stop_bt.style.display = "none";
+            recorder.stop();
+			$('#reg').text("Stop recording and send the WAV file.");
+			createDownloadLink(recorder.getBlob());
+        }
+
+        function setPrev() {
+			var recordingsList = document.getElementById("recordingsList");
+			recordingsList.innerHTML = "";
+            var elem = document.getElementById("t1");
+			var elem2 = document.getElementById("t2");
+			q_idx -= 1;
+			if(q_idx < 0){
+				q_idx = 0;
+			}
+			elem.value = questions[real_idx[q_idx]];
+			elem2.value = zhuyins[real_idx[q_idx]];
+			document.getElementById("question_id").value = q_idx;
+			$('#reg').text("The question ID is " + q_idx + "(" + real_idx[q_idx] + ")");
+        }
+		
+		function setNext() {
+			var recordingsList = document.getElementById("recordingsList");
+			recordingsList.innerHTML = "";
+            var elem = document.getElementById("t1");
+			var elem2 = document.getElementById("t2");
+			q_idx += 1;
+			if(q_idx >= questions.length){
+				q_idx = questions.length-1;
+			}
+			elem.value = questions[real_idx[q_idx]];
+			elem2.value = zhuyins[real_idx[q_idx]];
+			document.getElementById("question_id").value = q_idx;
+			$('#reg').text("The question ID is " + q_idx + "(" + real_idx[q_idx] + ")");
+        }
+		
+		function createDownloadLink(blob) {
+			var recordingsList = document.getElementById("recordingsList");
+			recordingsList.innerHTML = "";
+			var url = URL.createObjectURL(blob);
+			var au = document.createElement('audio');
+			var li = document.createElement('li');
+			var link = document.createElement('a');
+			start_time = new Date().getTime();
+			//name of .wav file to use during upload and download (without extendion)
+			var filename = nameID + "-" + real_idx[q_idx] + "-" + start_time;
+
+			//add controls to the <audio> element
+			au.controls = true;
+			au.src = url;
+
+			//save to disk link
+			link.href = url;
+			link.download = filename+".wav"; //download forces the browser to donwload the file using the  filename
+			link.innerHTML = "<input class=\"btn btn-primary\" type=\"button\" value=\"Save to disk\" />";
+
+			//add the new audio element to li
+			li.appendChild(au);
+			
+			//add the filename to the li
+			li.appendChild(document.createTextNode(filename+".wav "))
+
+			//add the save to disk link to li
+			li.appendChild(link);
+
+			//add the li element to the ol
+			recordingsList.appendChild(li);
+		}
+		
+		function init_test(){
+			var rawFile = new XMLHttpRequest();
+			rawFile.open("GET", "data/chars.txt", false);
+			rawFile.onreadystatechange = function (){
+				if(rawFile.readyState === 4){
+					if(rawFile.status === 200 || rawFile.status == 0){
+						var allText = rawFile.responseText;
+						allText=allText.split("\n");
+						for(i=0; i<allText.length; i++){
+							questions.push(allText[i]);
+						}
+					}
+				}
+			}
+			rawFile.send(null);
+			
+			var rawFile = new XMLHttpRequest();
+			rawFile.open("GET", "data/zhuyins.txt", false);
+			rawFile.onreadystatechange = function (){
+				if(rawFile.readyState === 4){
+					if(rawFile.status === 200 || rawFile.status == 0){
+						var allText = rawFile.responseText;
+						allText=allText.split("\n");
+						for(i=0; i<allText.length; i++){
+							zhuyins.push(allText[i]);
+						}
+					}
+				}
+			}
+			rawFile.send(null);
+			var rawFile = new XMLHttpRequest();
+			rawFile.open("GET", "data/seqnums.txt", false);
+			rawFile.onreadystatechange = function (){
+				if(rawFile.readyState === 4){
+					if(rawFile.status === 200 || rawFile.status == 0){
+						var allText = rawFile.responseText;
+						allText=allText.split("\n");
+						for(i=0; i<allText.length; i++){
+							real_idx.push(Number(allText[i]));
+						}
+					}
+				}
+			}
+			rawFile.send(null);
+		}
+
+		
+		window.onload = function init() {
+
+			init_test();
+
+			HZRecorder.get(function (rec) {
+                recorder = rec;
+				});
+			console.log('Requesting Microphone....');
+			/*navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+			console.log('No live audio input: ' + e);
+		});*/
+			var elem = document.getElementById("t1");
+			var elem2 = document.getElementById("t2");
+			var start_bt = document.getElementById("startRecordingBT");
+			var stop_bt = document.getElementById("stopRecordingBT");
+			start_bt.style.display = "block";
+			stop_bt.style.display = "none";
+			elem.value = questions[real_idx[q_idx]];
+			elem2.value = zhuyins[real_idx[q_idx]];
+			$('#reg').text("The system is ready for use.");
+                        console.log(questions);
+			console.log(zhuyins);
+			console.log(real_idx);	
+		}
+		
+		function startUserMedia(stream) {
+			var input = audio_context.createMediaStreamSource(stream);
+			console.log('Media stream created.');
+    
+			input.connect(audio_context.destination);
+			console.log('Input connected to audio context destination.');
+    
+			//recorder = new HZRecorder(input);
+			HZRecorder.get(function (rec) {
+                recorder = rec;
+				});
+			console.log('Recorder initialised.');
+		}
+
+    </script>
+
+</body>
+</html>
